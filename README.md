@@ -1,5 +1,3 @@
-@@ -1 +1,44 @@
- SINGULAR ITY
  # SHIELD – Android Personal Security Tool
  
  **SHIELD** is an always-on Android security app designed for your Motorola Edge 2024, built with custom EDGEX.xml integration. It protects against phone cloning, unauthorized access, USB debugging, unknown app installs, and RF-based interference.
