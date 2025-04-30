@@ -1,0 +1,74 @@
+#!/bin/bash
+
+# Exit script on any error
+set -e
+
+echo "=== Starting Gradle Wrapper Fix Script ==="
+
+# Step 1: Ensure Gradle is installed
+if ! command -v gradle &> /dev/null; then
+    echo "Error: Gradle is not installed. Please install Gradle and try again."
+    exit 1
+fi
+
+# Step 2: Regenerate Gradle Wrapper files
+echo "Regenerating Gradle Wrapper files..."
+gradle wrapper
+
+# Step 3: Ensure gradle-wrapper.properties exists and is correct
+WRAPPER_PROPERTIES_FILE="gradle/wrapper/gradle-wrapper.properties"
+if [ ! -f "$WRAPPER_PROPERTIES_FILE" ]; then
+    echo "Creating gradle-wrapper.properties file..."
+    mkdir -p gradle/wrapper
+    cat > "$WRAPPER_PROPERTIES_FILE" <<EOL
+distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
+distributionUrl=https\://services.gradle.org/distributions/gradle-7.6-bin.zip
+EOL
+else
+    echo "gradle-wrapper.properties file already exists. Verifying distributionUrl..."
+    if ! grep -q "distributionUrl=https\\://services.gradle.org/distributions/gradle-7.6-bin.zip" "$WRAPPER_PROPERTIES_FILE"; then
+        echo "Fixing distributionUrl in gradle-wrapper.properties..."
+        sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-7.6-bin.zip|' "$WRAPPER_PROPERTIES_FILE"
+    fi
+fi
+
+# Step 4: Ensure gradle-wrapper.jar exists
+WRAPPER_JAR_FILE="gradle/wrapper/gradle-wrapper.jar"
+if [ ! -f "$WRAPPER_JAR_FILE" ]; then
+    echo "gradle-wrapper.jar is missing. Regenerating it..."
+    gradle wrapper
+else
+    echo "gradle-wrapper.jar is already present."
+fi
+
+# Step 5: Remove distributionUrl from build.gradle if it exists
+BUILD_FILE="build.gradle"
+if [ -f "$BUILD_FILE" ] && grep -q "distributionUrl" "$BUILD_FILE"; then
+    echo "Cleaning up distributionUrl from build.gradle..."
+    sed -i '/distributionUrl/d' "$BUILD_FILE"
+else
+    echo "No distributionUrl found in build.gradle."
+fi
+
+# Step 6: Verify or create settings.gradle
+SETTINGS_FILE="settings.gradle"
+if [ ! -f "$SETTINGS_FILE" ]; then
+    echo "Creating a default settings.gradle file..."
+    cat > "$SETTINGS_FILE" <<EOL
+include ':app'
+rootProject.name = "Malware Scanner"
+EOL
+else
+    echo "settings.gradle file exists and looks fine."
+fi
+
+# Step 7: Add and commit changes to Git
+echo "Adding changes to Git..."
+git add gradlew gradlew.bat gradle/wrapper/ build.gradle settings.gradle
+git commit -m "Fix Gradle Wrapper setup and clean project configuration"
+git push origin main
+
+echo "=== Gradle Wrapper setup and project configuration fixed successfully! ==="
