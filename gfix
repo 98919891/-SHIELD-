@@ -1,0 +1,54 @@
+#!/bin/bash
+set -e
+
+echo "[+] Starting full Gradle Wrapper Fix + GitHub PR automation..."
+
+# Requirements check
+command -v gradle >/dev/null || { echo "[!] Gradle not installed."; exit 1; }
+command -v gh >/dev/null || { echo "[!] GitHub CLI (gh) not installed."; exit 1; }
+
+# Set Gradle environment
+export GRADLE_USER_HOME="$HOME/.gradle"
+
+# Step 1: Regenerate wrapper
+echo "[+] Running gradle wrapper --gradle-version 7.6"
+gradle wrapper --gradle-version 7.6
+
+# Step 2: Create/update gradle-wrapper.properties
+mkdir -p gradle/wrapper
+cat > gradle/wrapper/gradle-wrapper.properties <<EOF
+distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
+distributionUrl=https\://services.gradle.org/distributions/gradle-7.6-bin.zip
+EOF
+
+# Step 3: Ensure gradle-wrapper.jar exists
+if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+  echo "[+] gradle-wrapper.jar not found, regenerating..."
+  gradle wrapper
+fi
+
+# Step 4: Git setup
+git config --global user.email "autofix@shieldcore.ai"
+git config --global user.name "ShieldCore AutoFix"
+
+BRANCH_NAME="fix/gradle-wrapper"
+git checkout -B "$BRANCH_NAME"
+
+# Step 5: Commit changes
+git add gradlew gradlew.bat gradle/wrapper/
+if git diff --cached --quiet; then
+  echo "[+] No changes to commit."
+else
+  git commit -m "Fix Gradle Wrapper for GitHub Actions"
+fi
+
+# Step 6: Push & PR
+git push --set-upstream origin "$BRANCH_NAME"
+gh pr create --base main --head "$BRANCH_NAME" \
+  --title "Fix Gradle Wrapper for GitHub Actions" \
+  --body "This patch ensures the Gradle wrapper is properly configured and compatible with CI environments."
+
+echo "[✓] Complete: Pull request has been created."
