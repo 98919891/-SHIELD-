@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# Exit script on any error
+set -e
+
+echo "=== Fixing Gradle Wrapper Setup ==="
+
+# Step 1: Ensure Gradle is installed
+if ! command -v gradle &> /dev/null; then
+    echo "Error: Gradle is not installed. Please install Gradle and try again."
+    exit 1
+fi
+
+# Step 2: Regenerate Gradle Wrapper
+echo "Regenerating Gradle Wrapper files..."
+gradle wrapper
+
+# Step 3: Verify gradle-wrapper.properties
+WRAPPER_PROPERTIES_FILE="gradle/wrapper/gradle-wrapper.properties"
+if [ ! -f "$WRAPPER_PROPERTIES_FILE" ]; then
+    echo "Creating gradle-wrapper.properties..."
+    mkdir -p gradle/wrapper
+    cat > "$WRAPPER_PROPERTIES_FILE" <<EOL
+distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
+distributionUrl=https\://services.gradle.org/distributions/gradle-7.6-bin.zip
+EOL
+else
+    echo "gradle-wrapper.properties exists and looks fine."
+fi
+
+# Step 4: Commit and Push Changes
+echo "Adding and committing changes to Git..."
+git add gradlew gradlew.bat gradle/wrapper/
+git commit -m "Fix Gradle Wrapper setup and regenerate gradle-wrapper.jar"
+git push origin main
+
+# Step 5: Test Gradle Wrapper
+echo "Testing Gradle Wrapper..."
+./gradlew tasks || echo "Gradle Wrapper test failed. Please debug further."
+
+echo "=== Gradle Wrapper Fix Completed ==="
