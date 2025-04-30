@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Exit immediately if a command exits with a non-zero status
+set -e
+
+# Check if Gradle is installed
+if ! command -v gradle &> /dev/null
+then
+    echo "Gradle is not installed. Please install Gradle and try again."
+    exit 1
+fi
+
+# Run the Gradle wrapper command
+echo "Generating Gradle Wrapper files..."
+gradle wrapper
+
+# Verify that files were generated
+if [[ -f "gradlew" && -f "gradlew.bat" && -f "gradle/wrapper/gradle-wrapper.properties" && -f "gradle/wrapper/gradle-wrapper.jar" ]]; then
+    echo "Gradle Wrapper files generated successfully."
+else
+    echo "Failed to generate Gradle Wrapper files."
+    exit 1
+fi
+
+# Add files to Git
+echo "Adding Gradle Wrapper files to Git..."
+git add gradlew gradlew.bat gradle/wrapper/gradle-wrapper.properties gradle/wrapper/gradle-wrapper.jar
+
+# Commit files
+echo "Committing Gradle Wrapper files..."
+git commit -m "Add Gradle Wrapper files"
+
+# Push changes
+echo "Pushing changes to the repository..."
+git push origin main
+
+echo "Gradle Wrapper setup completed successfully!"
